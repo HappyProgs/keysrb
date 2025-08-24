@@ -2,18 +2,20 @@
 local KeySystem = {}
 KeySystem.__index = KeySystem
 
--- Конфиг
+-- Конфигурация
 local CONFIG = {
-    GITHUB_RAW_URL = "https://raw.githubusercontent.com/HappyProgs/fkdsfk/refs/heads/main/keys.json", -- ссылка на json с ключами
-    SAVE_FILE = "ultrahack_key.txt", -- имя файла для сохранения ключа
+    GITHUB_RAW_URL = "https://raw.githubusercontent.com/HappyProgs/fkdsfk/refs/heads/main/keys.json",
+    SCRIPT_NAME = "Key System",
+    DEVELOPER_TG = "https://t.me/mamkabotik",
+    LOGO_URL = "rbxassetid://7072717832",
+    SAVE_FILE = "ultrahack_key.txt" -- файл для сохранения ключа
 }
 
--- Проверка формата ключа
+-- Утилиты
 local function validateKeyFormat(key)
     return key and type(key) == "string" and #key >= 3
 end
 
--- Забираем ключи с GitHub
 local function fetchKeysFromGitHub()
     local success, result = pcall(function()
         return game:HttpGet(CONFIG.GITHUB_RAW_URL, true)
@@ -24,7 +26,6 @@ local function fetchKeysFromGitHub()
     return nil
 end
 
--- Проверка истечения
 local function isKeyExpired(expiryDate)
     local currentTime = os.time()
     local expiryTime = os.time({
@@ -37,7 +38,7 @@ local function isKeyExpired(expiryDate)
     return currentTime > expiryTime
 end
 
--- Валидация ключа
+-- Проверка ключа
 function KeySystem.validate(key)
     if not validateKeyFormat(key) then
         return false, "Неверный формат ключа"
@@ -45,7 +46,7 @@ function KeySystem.validate(key)
 
     local keysData = fetchKeysFromGitHub()
     if not keysData then
-        return false, "Ошибка загрузки ключей"
+        return false, "Ошибка подключения к серверу"
     end
 
     local keyData = keysData[key]
@@ -54,20 +55,19 @@ function KeySystem.validate(key)
     end
 
     if keyData.expires and isKeyExpired(keyData.expires) then
-        return false, "Ключ истёк"
+        return false, "Срок действия ключа истек"
     end
 
-    return true, keyData.expires and ("Действует до " .. keyData.expires) or "Постоянный ключ"
+    return true, keyData.expires and "Ключ действителен до " .. keyData.expires or "Постоянный ключ"
 end
 
--- Сохраняем ключ
+-- Сохранение / загрузка
 local function saveKey(key)
     if writefile then
         writefile(CONFIG.SAVE_FILE, key)
     end
 end
 
--- Загружаем ключ
 local function loadKey()
     if isfile and isfile(CONFIG.SAVE_FILE) then
         return readfile(CONFIG.SAVE_FILE)
@@ -75,80 +75,40 @@ local function loadKey()
     return nil
 end
 
--- GUI для ввода
+-- GUI
 local function createGUI(onKeySuccess)
-    local player = game.Players.LocalPlayer
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "KeySystemGUI"
-    screenGui.Parent = player:WaitForChild("PlayerGui")
+    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 400, 0, 220)
-    frame.Position = UDim2.new(0.5, -200, 0.5, -110)
+    frame.Size = UDim2.new(0, 400, 0, 250)
+    frame.Position = UDim2.new(0.5, -200, 0.5, -125)
     frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    frame.BorderSizePixel = 0
     frame.Parent = screenGui
-
-    local uiCorner = Instance.new("UICorner")
-    uiCorner.CornerRadius = UDim.new(0, 12)
-    uiCorner.Parent = frame
-
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.BackgroundTransparency = 1
-    title.Text = "🔑 Введите ключ"
-    title.TextColor3 = Color3.fromRGB(255,255,255)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 22
-    title.Parent = frame
 
     local input = Instance.new("TextBox")
     input.Size = UDim2.new(0, 300, 0, 40)
     input.Position = UDim2.new(0.5, -150, 0, 60)
     input.PlaceholderText = "Введите ключ..."
-    input.Text = ""
-    input.ClearTextOnFocus = false
-    input.Font = Enum.Font.Gotham
-    input.TextSize = 18
-    input.TextColor3 = Color3.fromRGB(255,255,255)
-    input.BackgroundColor3 = Color3.fromRGB(45,45,60)
-    input.BorderSizePixel = 0
     input.Parent = frame
-
-    local inputCorner = Instance.new("UICorner")
-    inputCorner.CornerRadius = UDim.new(0, 8)
-    inputCorner.Parent = input
 
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(0, 300, 0, 40)
     button.Position = UDim2.new(0.5, -150, 0, 110)
     button.Text = "Активировать"
-    button.Font = Enum.Font.GothamBold
-    button.TextSize = 18
-    button.TextColor3 = Color3.fromRGB(255,255,255)
-    button.BackgroundColor3 = Color3.fromRGB(70,130,250)
-    button.BorderSizePixel = 0
     button.Parent = frame
-
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 8)
-    buttonCorner.Parent = button
 
     local status = Instance.new("TextLabel")
     status.Size = UDim2.new(0, 300, 0, 40)
     status.Position = UDim2.new(0.5, -150, 0, 160)
-    status.Text = ""
+    status.Text = "Введите ключ для активации"
     status.TextColor3 = Color3.fromRGB(200,200,200)
-    status.Font = Enum.Font.Gotham
-    status.TextSize = 16
-    status.BackgroundTransparency = 1
     status.Parent = frame
 
     button.MouseButton1Click:Connect(function()
         local key = input.Text
-        status.Text = "⏳ Проверка..."
-        status.TextColor3 = Color3.fromRGB(255,255,100)
-
+        status.Text = "Проверка..."
         local success, msg = KeySystem.validate(key)
         if success then
             status.Text = "✅ " .. msg
@@ -174,7 +134,7 @@ function KeySystem.init(onKeySuccess)
             onKeySuccess()
             return
         else
-            warn("Старый ключ не подходит: " .. msg)
+            warn("Сохранённый ключ недействителен: " .. msg)
         end
     end
     createGUI(onKeySuccess)
