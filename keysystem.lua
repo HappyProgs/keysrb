@@ -995,17 +995,23 @@ end
 
 -- Инициализация системы ключей
 function KeySystem.init()
-    -- Проверяем сохраненный ключ
     local savedKey = loadSavedKey()
+    local gui = createGUI() -- Создаем GUI сразу
+    local mainMenuLaunched = false -- Флаг для отслеживания состояния меню
+
+    -- Проверяем сохраненный ключ
     if savedKey then
         local success, message = KeySystem.validate(savedKey)
         if success then
-            print("Сохраненный ключ действителен: " .. message)
+            gui.StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            gui.StatusLabel.Text = "✓ Сохраненный ключ действителен: " .. message
+            gui.InputBox.Text = savedKey
+            gui.SubmitButton.Text = "ОТКРЫТЬ МЕНЮ ЧИТА"
+            mainMenuLaunched = true
             launchMainMenu() -- Запускаем меню чита
-            return
         else
-            print("Сохраненный ключ недействителен: " .. message)
-            -- Удаляем недействительный ключ
+            gui.StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+            gui.StatusLabel.Text = "✗ Сохраненный ключ недействителен: " .. message
             pcall(function()
                 if isfile(CONFIG.KEY_STORAGE_FILE) then
                     delfile(CONFIG.KEY_STORAGE_FILE)
@@ -1014,10 +1020,18 @@ function KeySystem.init()
         end
     end
 
-    -- Если сохраненного ключа нет или он недействителен, показываем GUI
-    local gui = createGUI()
-    
     gui.SubmitButton.MouseButton1Click:Connect(function()
+        if mainMenuLaunched then
+            -- Если меню уже запущено, просто показываем его
+            local screenGui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("UltraHack_" .. HttpService:GenerateGUID(false))
+            if screenGui then
+                screenGui.MainFrame.Visible = true
+                gui.StatusLabel.Text = "✓ Меню чита открыто"
+                gui.StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            end
+            return
+        end
+
         local key = gui.InputBox.Text
         gui.StatusLabel.Text = "Проверка ключа..."
         gui.StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -1027,10 +1041,12 @@ function KeySystem.init()
         if success then
             gui.StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
             gui.StatusLabel.Text = "✓ " .. message
-            saveKey(key) -- Сохраняем ключ
+            saveKey(key)
+            mainMenuLaunched = true
+            gui.SubmitButton.Text = "ОТКРЫТЬ МЕНЮ ЧИТА"
             wait(2)
             gui.ScreenGui:Destroy()
-            launchMainMenu() -- Запускаем меню чита
+            launchMainMenu()
             print("Чит успешно активирован!")
         else
             gui.StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
